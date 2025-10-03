@@ -151,14 +151,13 @@ print(products)
 Here is an example of using the tools in an AI agent. The `ScraperAPITool` gives the AI the ability to browse any website, summarize articles, and click on links to navigate between pages.
 
 ```python
-%pip install -qU langchain-openai
+%pip install -qU langchain-openai langchain
 ```
 
 ```python
 import os
 
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from langchain_scraperapi.tools import ScraperAPITool
 
@@ -166,24 +165,18 @@ os.environ["SCRAPERAPI_API_KEY"] = "your-api-key"
 os.environ["OPENAI_API_KEY"] = "your-api-key"
 
 tools = [ScraperAPITool(output_format="markdown")]
-llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
+llm = ChatOpenAI(model="gpt-4o", temperature=0)
 
-prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "You are a helpful assistant that can browse websites for users. When asked to browse a website or a link, do so with the ScraperAPITool, then provide information based on the website based on the user's needs.",
-        ),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ]
+agent = create_agent(
+    model=llm,
+    tools=tools,
+    prompt="You are a helpful assistant that can browse websites for users. When asked to browse a website or a link, do so with the ScraperAPITool, then provide information based on the website based on the user's needs.",
 )
 
-agent = create_tool_calling_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-response = agent_executor.invoke(
-    {"input": "can you browse hacker news and summarize the first website"}
+response = agent.invoke(
+    {"messages": [{"role": "user", "content": "can you browse hacker news and summarize the first website"}]}
 )
+print(response["messages"][-1].content)
 ```
 
 ## API reference
